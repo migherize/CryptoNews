@@ -2,6 +2,24 @@
 
 Proyecto para visualizar noticas sobre cryptomonedas hecho en Vue.js y Python3.
 
+# Scraping
+
+    NEWS
+
+    https://watcher.guru/news/
+    https://cryptonomist.ch/
+    https://www.criptovaluta.it/news
+    https://www.coindesk.com/
+    https://finance.yahoo.com/topic/crypto/
+    https://coinmarketcap.com/alexandria/categories/market-musing
+
+
+    API utili che sarebbe interessante integrare...
+
+    https://alternative.me/crypto/fear-and-greed-index/
+    https://coinmarketcap.com/
+    https://watcher.guru/whale-tracking
+
 ## - Estructura de General
 
 ![Structure](docs/structure.png)
