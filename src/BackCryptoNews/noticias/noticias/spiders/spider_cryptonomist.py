@@ -41,7 +41,7 @@ class cryptonomist(scrapy.Spider):
         for n in news:
             #ert = n.xpath('.//span[contains(@class, "ert")]/text()').extract_first()
             fecha = n.xpath('.//span[contains(@class, "time")]/text()').extract_first()
-            title = n.xpath('//h4[contains(@class, "post-title")]/text()').extract_first()
+            title = n.xpath('.//h4[contains(@class, "post-title")]/text()').extract_first()
             descripcion = n.xpath('.//p[contains(@class, "post-description m-t-20")]/text()').extract_first()
             link = n.xpath('.//div[contains(@class, "post-content")]/a/@href').extract_first()
             link_image = n.xpath('.//img[contains(@loading, "lazy")]/@src').extract_first()
