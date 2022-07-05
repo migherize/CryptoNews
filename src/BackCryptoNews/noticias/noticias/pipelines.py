@@ -4,26 +4,51 @@
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
 # useful for handling different item types with a single interface
+from email.mime import base
 import json
 import os
+import scrapy
+from scrapy.exceptions import CloseSpider
 from os import path
 import sqlite3
 
 # constants
 data = {}
+
+# Mac o Linux
 path_folder = (os.getcwd()).replace('BackCryptoNews/noticias','') + 'data/'
+
+# Windows
+# path_folder = (os.getcwd()).replace('\\BackCryptoNews\\noticias','') + '\\data/'
+
 name = 'items'
 workname = name + '.json'
-list_item = ['date','title','description','link','history','language','category','image']
-name_db = '{}_history.db'.format(name)
+list_item = ['date','title','description','link','history','image','author','link_author','dominio','category','language','news_body']
 
-# Conexion SQL
-con = sqlite3.connect(path.join(path_folder, name_db))
-cur = con.cursor()
-cur.execute('''CREATE TABLE IF NOT EXISTS info (history text, title text, descripcion text, link text, date_news text, language text, category text, image text)''')
+base_url = ['cryptonomist.ch','criptovaluta.it','watcher.guru','en.cryptonomist.ch','coinmarketcap.com']
 
 class NoticiasPipeline:
     def open_spider(self, spider):
+        '''
+        last_new = []
+        # Leer la ultima scrapiada
+        if os.path.exists(path.join(path_folder, workname)):
+            with open(path.join(path_folder, workname)) as file:
+                data_json = json.load(file)
+
+            # Buscar el ultima noticia scrapiada en cada dominio
+            for b in base_url:
+                bandera = True
+                for lista in data_json:
+                    for key,value in lista.items():
+                        if key == 'link':
+                            if bandera and (b in value):
+                                print("link",value)
+                                last_new.append(value)
+                                bandera = False
+        
+            print("last_new",last_new)
+        '''
         self.items = []
 
     def process_item(self, item, spider):
@@ -31,7 +56,6 @@ class NoticiasPipeline:
         return item
 
     def close_spider(self, spider):
-        
         # Busca el JSON de la ultima raspada (hace 1hr)
         if os.path.exists(path.join(path_folder, workname)):
             with open(path.join(path_folder, workname)) as file:
@@ -51,43 +75,24 @@ class NoticiasPipeline:
                 with open(path.join(path_folder, workname), 'w') as file:
                     json.dump(ordenado, file, indent=4)
             else:
-                # insertar a DB
+                if os.path.exists(path.join(path_folder, 'items_history.json')):
+                    # Lectura del Json schedule
+                    with open(path.join(path_folder, 'items_history.json')) as file:
+                        data_json_history = json.load(file)
+                else:
+                    data_json_history = []
+
+                # Lectura del Json history
                 with open(path.join(path_folder, workname)) as file:
                     data_json = json.load(file)
                 
-                # separar cada dato en cada columna de la DB e insertar
-                for lista in data_json:
-                    for key,value in lista.items():
-                        if key == list_item[0]:
-                            date_news = value
-                            
-                        elif key == list_item[1]:
-                            titulo = value
-                            
-                        elif key == list_item[2]:
-                            descripcion = value
-                            
-                        elif key == list_item[3]:
-                            link = value
-                            
-                        elif key == list_item[4]:
-                            historial = value
-                        
-                        elif key == list_item[5]:
-                            language = value
-                        
-                        elif key == list_item[6]:
-                            category = value
-                        
-                        elif key == list_item[7]:
-                            image = value
-
-                    param = (historial,titulo,descripcion,link,date_news,language,category,image)
-                    cur.execute("INSERT INTO info VALUES (?,?,?,?,?,?,?,?)",param)
-                    con.commit()
-                con.close()
+                data_json_history+=data_json
                 
-                #Escribir json noticias
+                file = open(path.join(path_folder, 'items_history.json'), 'w')
+                file.write(json.dumps(data_json_history, indent=4))
+                file.close()  
+
+                #Escribir json noticias nuevas
                 write_json(self.items)
         else:
             #Escribir json noticias

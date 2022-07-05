@@ -3,8 +3,9 @@ import string
 import re
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from googletrans import Translator
 
-def time(date):
+def time_format(date):
     date = date.lower()
     today = datetime.now(ZoneInfo("Europe/Berlin"))
     
@@ -44,15 +45,17 @@ def time(date):
     
     
 #date = "Apr 17, 2022"
+date = "04/07/22 18:38"
 #date = "2 day ago"
 #date = "2 hours ago"
 #date = "2 min"
-date = "16 Jun 2022"
-organizar_date = date.split()
-organizar_date[0] = organizar_date[0] + ','
-date = organizar_date[1] +' '+ organizar_date[0] +' '+organizar_date[2]
-print("date",date)
+#date = "3 lug 2022".     # Se transforma
+#date = Translator().translate(str(fecha.replace('-',''))).text
+#organizar_date = date.split()
+#organizar_date[0] = organizar_date[0] + ','
+#date = organizar_date[1] +' '+ organizar_date[0] +' '+organizar_date[2]
+#print("date",date)
 
-trans_data = time(date)
+trans_data = time_format(date)
 print("trans_data",trans_data)
 
