@@ -13,6 +13,7 @@ def Last_New(base_url):
     import json
     import os
     from os import path
+    
     last_new = ''
     path_folder = (os.getcwd()).replace('BackCryptoNews/noticias','') + 'data/'
     # Windows SO
