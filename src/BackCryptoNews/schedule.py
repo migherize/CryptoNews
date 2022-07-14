@@ -19,9 +19,9 @@ while True:
     #subprocess.call(["scrapy","crawl","cryptonomist","-a",schedule],cwd="./noticias")
     #subprocess.call(["scrapy","crawl","criptovaluta","-a",schedule],cwd="./noticias")
     #subprocess.call(["scrapy","crawl","watcher_guru","-a",schedule],cwd="./noticias")
-    subprocess.call(["scrapy","crawl","yahoo","-a",schedule],cwd="./noticias")
     #subprocess.call(["scrapy","crawl","coinmarketcap","-a",schedule],cwd="./noticias")
-    #subprocess.call(["scrapy","crawl","coindesk","-a",schedule],cwd="./noticias")
+    subprocess.call(["scrapy","crawl","coindesk","-a",schedule],cwd="./noticias")
+    #subprocess.call(["scrapy","crawl","yahoo","-a",schedule],cwd="./noticias")
     
     # Volver a llamarse
     print("ESPERANDO SIGUIENTE HORA")
