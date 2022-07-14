@@ -11,121 +11,128 @@ from scrapy import Selector
 from googletrans import Translator
 from scrapy import FormRequest
 from scrapy.http import JsonRequest
+from scrapy.exceptions import CloseSpider
 import re
+import requests
 
-class coin(scrapy.Spider):
-    name = 'coin'
-    base_url = 'https://watcher.guru'
-    #custom_settings = {'LOG_LEVEL': 'INFO'}        # funciona para visualizar los items scrapeando
+def Last_New(base_url):
+    import json
+    import os
+    from os import path
     
+    last_new = ''
+    path_folder = (os.getcwd()).replace('BackCryptoNews/noticias','') + 'data/'
+    # Windows SO
+    # path_folder = (os.getcwd()).replace('\\BackCryptoNews\\noticias','') + '\\data/'
+
+    name_json = 'items'
+    workname = name_json + '.json'
+    bandera = True
+
+    # Ultimo en data
+    if os.path.exists(path.join(path_folder, workname)):
+        with open(path.join(path_folder, workname)) as file:
+            data_json = json.load(file)
+
+        # Buscar el ultima noticia scrapiada en cada dominio
+        for lista in data_json:
+            for key,value in lista.items():
+                if key == 'link':
+                    if base_url in value and bandera:
+                        print("link",value)
+                        last_new = value
+                        bandera = False
+        return last_new
+    
+    else:
+        return last_new
+
+class coindesk(scrapy.Spider):
+    name = 'coindesk'
+    base_url = 'https://www.coindesk.com'
+    counter = 0
+    #custom_settings = {'LOG_LEVEL': 'INFO'}        # funciona para visualizar los items scrapeando
+    last_new = Last_New(base_url)
+    flag = False
+    
+    headers = {
+        "authority": "www.coindesk.com",
+        "accept": "*/*",
+        "accept-language": "es-419,es;q=0.9",
+        "cache-control": "max-age=0",
+        "cookie": "AKA_A2=A",
+        "if-modified-since": "1657204876267",
+        "referer": "https://www.coindesk.com/markets/",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "sec-gpc": "1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+    }
+
+
     def __init__(self, *args, **kwargs):
         self.schedule = kwargs.pop('schedule', '')  # path to where all workflows are stored
         #print("self.schedule",self.schedule)
         
     def start_requests(self):
-        urls = [
-            'https://coinmarketcap.com/alexandria/categories/market-musing',
-        ]
-        for url in urls:
-            yield Request(url=url, callback=self.open_page, dont_filter=True)
-
+        url = "https://www.coindesk.com/"
+        yield Request(url=url, callback=self.start_search, dont_filter=True)
+    
     def start_search(self, response):
-        #print("url",response.url)
-        news = response.xpath('//div[contains(@class, "cs-posts-area__main")]/article')
-        #print("noticas",len(news))
-        for n in news:
-            link_image = n.xpath('.//div[contains(@class, "cs-entry__outer")]/div[contains(@class, "cs-entry__inner")]/div[contains(@class, "cs-overlay-background")]/img[contains(@class, "attachment-csco-thumbnail")]/@data-lazy-src').extract_first()
-            category = n.xpath('.//div[contains(@class, "cs-entry__inner cs-entry__content")]/div[contains(@class, "cs-entry__post-meta")]/div/ul/li/a/text()').extract_first()
-            title = n.xpath('.//div[contains(@class, "cs-entry__inner cs-entry__content")]/h2[contains(@class, "cs-entry__title")]/a/text()').extract_first()
-            link = n.xpath('.//div[contains(@class, "cs-entry__inner cs-entry__content")]/h2[contains(@class, "cs-entry__title")]/a/@href').extract_first()
-            descripcion = n.xpath('.//div[contains(@class, "cs-entry__inner cs-entry__content")]/div[contains(@class, "cs-entry__excerpt")]/text()').extract_first()
-            fecha = n.xpath('.//div[contains(@class, "cs-entry__inner cs-entry__content")]/div[contains(@class, "cs-entry__details")]/div/div/div/div/text()').extract_first()
-            author = n.xpath('.//div[contains(@class, "cs-entry__inner cs-entry__content")]/div[contains(@class, "cs-entry__details")]/div/div/div/a/text()').extract_first()
-            link_author = n.xpath('.//div[contains(@class, "cs-entry__inner cs-entry__content")]/div[contains(@class, "cs-entry__details")]/div/div/div/a/@href').extract_first()
-            language = response.xpath('/html/@lang').extract_first()
+        url = "https://www.coindesk.com/pf/api/v3/content/fetch/content-search?query=%7B%22format%22%3A%22article-timeline%22%2C%22from%22%3A{}%2C%22isLiveWirePage%22%3Atrue%2C%22section%22%3A%22%2Fmarkets%22%2C%22sections%22%3A%22%2Fmarkets%22%2C%22size%22%3A6%2C%22sort%22%3A%22display_date%3Adesc%22%2C%22types%22%3A%22%22%7D&d=176&_website=coindesk".format(self.counter)
+        querystring = '{"query":"{"format":"article-timeline","from":'
+        querystring += str(self.counter)
+        querystring += ',"isLiveWirePage":true,"section":"/markets","sections":"/markets","size":6,"sort":"display_date:desc","types":""}","d":"176","_website":"coindesk"}'
+        payload = ""
+        response = requests.request("GET", url, data=payload, headers=self.headers, params=querystring)
+        data = response.json()
+        cursos = data['content_elements']
 
-            array_moth = {
-                'January':'Jan', 
-                'February':'Feb', 
-                'March':'Mar', 
-                'April':'Apr', 
-                'May':'May', 
-                'June':'Jun',
-                'July':'Jul', 
-                'August':'Aug', 
-                'September':'Sep', 
-                'Octuber':'Oct', 
-                'November':'Nov', 
-                'December':'Dec'
-            }
+        for curso in cursos:
+            link = 'https://www.coindesk.com/'+curso['website_url']
+            # Verifica si ultimo se encuentra en la raspada
+            if link == self.last_new:
+                print("ultimoScrapy",link)
+                self.flag = True
 
             # Guardar los datos
             item = NoticiasItem()
+            item['date'] = str(curso['created_date']).replace('T',' ').replace('Z','').replace(': ',':')
+            item['title'] = str(curso['headlines']['basic'])
+            item['description'] = curso['subheadlines']['basic']
+            item['link'] = link
+            item['category'] = curso['taxonomy']['primary_section']['name']
+            item['author'] = curso['credits']['by'][0]['name']
+            item['image'] = curso['promo_items']['basic']['additional_properties']['originalUrl']
+            item['link_author'] = 'https://www.coindesk.com/author/'+ curso['credits']['by'][0]['_id']
+            item['dominio'] = self.base_url
+            item['language'] = 'en-US'
+            item['views'] = 0
+            item['history'] = str(self.schedule)
 
-            if fecha:
-                fecha_split = fecha.split()
-                for clave in array_moth:
-                    if clave == fecha_split[0]:
-                        fecha_split[0] = array_moth[clave]
-
-                fecha = '{} {} {}'.format(fecha_split[0],fecha_split[1],fecha_split[2])
-                date = time_format(fecha.strip())
+            if link is not None:
+                yield scrapy.Request(url=link, callback = self.parse_information, meta={'same_item':item})
             
-            if author:
-                item['date'] = date
-                item['title'] = title
-                item['description'] = descripcion
-                item['link'] = link
-                item['category'] = category
-                item['image'] = link_image
-                item['author'] = author
-                item['link_author'] = link_author
-                item['dominio'] = self.base_url
-                item['language'] = language
-                item['views'] = 0
-                item['history'] = str(self.schedule)
-            
-                # News Body
-                if link is not None:
-                    yield scrapy.Request(url=link, callback = self.parse_information, meta={'same_item':item})
+            else:
+                yield item
 
-                else:
-                    item['news_body'] = ''
-                    yield item
-        # Btn-Next
-        next_url = response.xpath('//div[contains(@class, "cs-posts-area__pagination")]').getall()
-        print("NEXT",next_url)
-        '''
-        #yield Request(url=next_url, callback=self.start_url, dont_filter=True)
-        params = {
-            'action': 'csco_ajax_load_more',
-            'page': '2',
-            'posts_per_page': '10',
-            'attributes': 'false',
-            '_ajax_nonce': 'ef1dcc01a1',
-            'options': '{"location":"archive","meta":"archive_post_meta","layout":"list","columns":2,"compact_meta":true,"image_orientation":"original","image_size":"csco-thumbnail","image_width":"half","overlay_image":false,"more_button":true,"summary_type":"summary"}',
-            'query_data': '{"first_post_count":10,"infinite_load":false,"query_vars":{"category_name":"bitcoin","error":"","m":"","p":0,"post_parent":"","subpost":"","subpost_id":"","attachment":"","attachment_id":0,"name":"","pagename":"","page_id":0,"second":"","minute":"","hour":"","day":0,"monthnum":0,"year":0,"w":0,"tag":"","cat":4,"tag_id":"","author":"","author_name":"","feed":"","tb":"","paged":0,"meta_key":"","meta_value":"","preview":"","s":"","sentence":"","title":"","fields":"","menu_order":"","embed":"","category__in":[],"category__not_in":[],"category__and":[],"post__in":[],"post__not_in":[],"post_name__in":[],"tag__in":[],"tag__not_in":[],"tag__and":[],"tag_slug__in":[],"tag_slug__and":[],"post_parent__in":[],"post_parent__not_in":[],"author__in":[],"author__not_in":[],"ignore_sticky_posts":false,"suppress_filters":false,"cache_results":true,"update_post_term_cache":true,"lazy_load_term_meta":true,"update_post_meta_cache":true,"post_type":"","posts_per_page":10,"nopaging":false,"comments_per_page":"50","no_found_rows":false,"order":"DESC"},"in_the_loop":false,"is_single":false,"is_page":false,"is_archive":true,"is_author":false,"is_category":true,"is_tag":false,"is_tax":false,"is_home":false,"is_singular":false}',
-        }
+        # Verifica si encontro la ultima noticia en esa pagina
+        if self.flag:
+            raise CloseSpider('Encontro la ultima scrapy')
 
-        yield JsonRequest(
-                url = 'https://watcher.guru/news/wp-json/csco/v1/more-posts',
-                data = params,
-                method='POST',
-                callback = self.open_page
-            )
-        '''
+        # Paginacion
+        self.counter += 6
+        yield Request(url='https://www.coindesk.com/', callback=self.start_search, dont_filter=True)
 
     def parse_information(self, response):
         data_extended = response.meta.get('same_item')
-        body = response.xpath('//div[contains(@class, "entry-content")]/p').getall()
-        print(len(body),"body",body)
+        body = response.xpath('//div[contains(@class, "contentstyle__StyledWrapper-g5cdrh-0 gCDWPA")]/div/div/p').getall()
         for i,d in enumerate(body[:5]):
             body[i] = re.sub('(<([^>]+)>)', '', d)
-            print("list_body[i]",body[i])
         data_extended['news_body'] = body[:5]
         yield data_extended
 
     def open_page(self, response): #Funcion para hacer pruebas
-        print("entre")
-        #print("texto",response.text)
+        print("texto",response.text)
         open_in_browser(response)
